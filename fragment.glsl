@@ -67,10 +67,8 @@ void main() {
     vec3 rd = getRay(uv);
     float t = raymarch(ro, rd, uTime);
 
-    vec3 color = vec3(0.0);
-    if (t < 10.0) {
-        color = vec3(1.0 - t * 0.1, 0.4, 0.8);
-    }
+    vec3 color = vec3(t * t * 0.1);
+    
 
     gl_FragColor = vec4(color, 1.0);
 }
