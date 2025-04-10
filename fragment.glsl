@@ -1,6 +1,10 @@
 precision highp float;
 
 uniform float uTime;
+
+uniform float uRotationX;
+uniform float uRotationY;
+
 uniform vec2 uResolution;
 
 // Signed distance to cube
@@ -37,8 +41,8 @@ float raymarch(vec3 ro, vec3 rd, float time) {
         vec3 p = ro + t * rd;
 
         // Rotate the cube in space
-        p *= rotationY(time * 0.7);
-        p *= rotationX(time * 0.5);
+        p *= rotationY(uRotationY);
+        p *= rotationX(uRotationX);
 
         float d = cubeSDF(p, vec3(0.5));
         if (d < 0.001) break;
