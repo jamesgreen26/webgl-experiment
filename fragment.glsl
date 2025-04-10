@@ -35,14 +35,31 @@ mat3 rotationX(float angle) {
     );
 }
 
+mat3 rotationMatrix(float angleX, float angleY) {
+    mat3 rotationX = mat3(
+        1.0, 0.0, 0.0,
+        0.0, cos(angleX), -sin(angleX),
+        0.0, sin(angleX), cos(angleX)
+    );
+
+    mat3 rotationY = mat3(
+        cos(angleY), 0.0, sin(angleY),
+        0.0, 1.0, 0.0,
+        -sin(angleY), 0.0, cos(angleY)
+    );
+
+    return rotationY * rotationX; // Combine rotations
+}
+
 float raymarch(vec3 ro, vec3 rd, float time) {
     float t = 0.0;
+    mat3 combinedRotation = rotationMatrix(uRotationX, uRotationY); // Create the combined rotation matrix
+    
     for (int i = 0; i < 100; i++) {
         vec3 p = ro + t * rd;
 
-        // Rotate the cube in space
-        p *= rotationY(uRotationY);
-        p *= rotationX(uRotationX);
+        // Apply the combined rotation to the point p
+        p = combinedRotation * p;
 
         float d = cubeSDF(p, vec3(0.5));
         if (d < 0.001) break;
