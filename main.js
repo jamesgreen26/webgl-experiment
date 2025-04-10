@@ -10,7 +10,10 @@ let rotationY = 0;
 
 interact('#glcanvas')
     .draggable({
-      inertia: true,   // Enable inertia
+      inertia: {
+        resistance: 3,
+        minSpeed: 0,
+      },   
       modifiers: [
         interact.modifiers.restrict({
           restriction: 'parent',
