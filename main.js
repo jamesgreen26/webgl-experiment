@@ -20,8 +20,11 @@ interact('#glcanvas')
         }),
       ],
       onmove(event) {
-        rotationX += event.dy * 0.01;  // Adjust the sensitivity
-        rotationY += event.dx * -0.01;  // Adjust the sensitivity
+        if ((event.dy > 0 && rotationX < Math.PI / 2) || (event.dy < 0 && rotationX > -Math.PI / 2)) {
+          rotationX += event.dy * 0.01;
+        }
+
+        rotationY += event.dx * 0.01;
       }
     });
 
