@@ -5,8 +5,8 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 const gl = canvas.getContext("webgl");
 
-let rotationX = 0;
-let rotationY = 0;
+let rotationX = 0.5;
+let rotationY = -2.3;
 
 interact('#glcanvas')
     .draggable({
