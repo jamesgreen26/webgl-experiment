@@ -7,7 +7,7 @@ uniform float uRotationY;
 
 uniform vec2 uResolution;
 
-const float waveCount = 16.0;
+const float waveCount = 12.0;
 
 
 float hash(float n) {
@@ -141,25 +141,38 @@ void main() {
 
     vec3 ro = vec3(0.0, 0.0, 3.0);
     vec3 rd = getRay(uv);
-    float t = raymarch(ro, rd, uTime);
+    float scaledTime = uTime * 1.2;
+
+    float t = raymarch(ro, rd, scaledTime);
 
     vec3 color = vec3(1.0);
 
     if (t < 10.0) {
+
         vec3 hitPoint = ro + rd * t;
         mat3 rot = rotationMatrix(uRotationX, uRotationY);
+        hitPoint = rot * hitPoint;
 
-        hitPoint = rot * hitPoint; // Rotate the hit point as in raymarch
-        vec3 normal = getAnalyticNormal(hitPoint, uTime);
-        float diff = max(dot(normal, lightDir), 0.0);
-
+        vec3 normal = getAnalyticNormal(hitPoint, scaledTime);
         vec3 viewDir = normalize((rot * ro) - hitPoint);
-        vec3 halfDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfDir), 0.0), 128.0);
+        vec3 lightDir = normalize(vec3(0.5, 1.0, 1.3));
 
-        spec *= pow(diff, 0.5);
+        float diff = max(dot(normal, lightDir), 0.0);
+        float spec = pow(max(dot(normal, normalize(lightDir + viewDir)), 0.0), 64.0);
 
-        color = vec3(0.2, 0.5, 1.0) * diff + vec3(0.9, 1.0, 1.0 ) * spec;
+        // Translucent scattering
+        float transmission = pow(1.0 - max(dot(viewDir, normal), 0.0), 2.0);
+        vec3 transmittedColor = vec3(0.1, 0.6, 0.7) * transmission;
+
+        // Fresnel effect
+        float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
+        vec3 fresnelColor = mix(vec3(0.1, 0.3, 0.4), vec3(1.0), fresnel);
+
+
+        color = vec3(0.2, 0.6, 1.0) * diff;
+        color += (transmittedColor / 10.0);
+        color *= fresnelColor;
+        color += vec3(0.9, 1.0, 1.0) * spec * diff;
     }
 
 
