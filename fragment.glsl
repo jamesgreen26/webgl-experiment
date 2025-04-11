@@ -15,7 +15,7 @@ float rand(float seed) {
 float waveLayer(vec3 p, float time, float i) {
     float r = rand(i);
     float dir = sin(r) * p.z + cos(r) * p.x;
-    return (sin((dir * pow(1.2, i) * 2.0) + time * 1.5 * pow(-1.0, i)) * pow(0.82, i)) / 48.0;
+    return (sin((dir * pow(1.2, i) * 2.0) + time * 1.5 * pow(-1.0, i)) * pow(0.82, i)) / 36.0;
 }
 
 
