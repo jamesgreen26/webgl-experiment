@@ -135,46 +135,53 @@ vec3 getRay(vec2 uv) {
 
 
 void main() {
-    vec2 uv = (gl_FragCoord.xy / uResolution) * 2.0 - 1.0;
-    vec3 lightDir = normalize(vec3(0.5, 1.0, 1.3));
-    uv.x *= uResolution.x / uResolution.y;
+    vec2 pixel = gl_FragCoord.xy;
+    vec2 offsets[4];
+    offsets[0] = vec2(-0.25, -0.25);
+    offsets[1] = vec2( 0.25, -0.25);
+    offsets[2] = vec2(-0.25,  0.25);
+    offsets[3] = vec2( 0.25,  0.25);
 
-    vec3 ro = vec3(0.0, 0.0, 3.0);
-    vec3 rd = getRay(uv);
-    float scaledTime = uTime * 1.2;
+    vec3 finalColor = vec3(0.0);
 
-    float t = raymarch(ro, rd, scaledTime);
+    for (int i = 0; i < 4; ++i) {
+        vec2 uv = ((pixel + offsets[i]) / uResolution) * 2.0 - 1.0;
+        uv.x *= uResolution.x / uResolution.y;
 
-    vec3 color = vec3(1.0);
+        vec3 ro = vec3(0.0, 0.0, 3.0);
+        vec3 rd = getRay(uv);
+        float scaledTime = uTime * 1.2;
 
-    if (t < 10.0) {
+        float t = raymarch(ro, rd, scaledTime);
+        vec3 color = vec3(1.0);
 
-        vec3 hitPoint = ro + rd * t;
-        mat3 rot = rotationMatrix(uRotationX, uRotationY);
-        hitPoint = rot * hitPoint;
+        if (t < 10.0) {
+            vec3 hitPoint = ro + rd * t;
+            mat3 rot = rotationMatrix(uRotationX, uRotationY);
+            hitPoint = rot * hitPoint;
 
-        vec3 normal = getAnalyticNormal(hitPoint, scaledTime);
-        vec3 viewDir = normalize((rot * ro) - hitPoint);
-        vec3 lightDir = normalize(vec3(0.5, 1.0, 1.3));
+            vec3 normal = getAnalyticNormal(hitPoint, scaledTime);
+            vec3 viewDir = normalize((rot * ro) - hitPoint);
+            vec3 lightDir = normalize(vec3(0.5, 1.0, 1.3));
 
-        float diff = max(dot(normal, lightDir), 0.0);
-        float spec = pow(max(dot(normal, normalize(lightDir + viewDir)), 0.0), 64.0);
+            float diff = max(dot(normal, lightDir), 0.0);
+            float spec = pow(max(dot(normal, normalize(lightDir + viewDir)), 0.0), 64.0);
 
-        // Translucent scattering
-        float transmission = pow(1.0 - max(dot(viewDir, normal), 0.0), 2.0);
-        vec3 transmittedColor = vec3(0.1, 0.6, 0.7) * transmission;
+            float transmission = pow(1.0 - max(dot(viewDir, normal), 0.0), 2.0);
+            vec3 transmittedColor = vec3(0.1, 0.6, 0.7) * transmission;
 
-        // Fresnel effect
-        float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
-        vec3 fresnelColor = mix(vec3(0.1, 0.3, 0.4), vec3(1.0), fresnel);
+            float fresnel = pow(1.0 - dot(viewDir, normal), 3.0);
+            vec3 fresnelColor = mix(vec3(0.1, 0.3, 0.4), vec3(1.0), fresnel);
 
+            color = vec3(0.2, 0.6, 1.0) * diff;
+            color += (transmittedColor / 10.0);
+            color *= fresnelColor;
+            color += vec3(0.9, 1.0, 1.0) * spec * diff;
+        }
 
-        color = vec3(0.2, 0.6, 1.0) * diff;
-        color += (transmittedColor / 10.0);
-        color *= fresnelColor;
-        color += vec3(0.9, 1.0, 1.0) * spec * diff;
+        finalColor += color;
     }
 
-
-    gl_FragColor = vec4(color, 1.0);
+    finalColor /= 4.0; // average the 4 samples
+    gl_FragColor = vec4(finalColor, 1.0);
 }
