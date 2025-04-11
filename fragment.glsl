@@ -7,24 +7,60 @@ uniform float uRotationY;
 
 uniform vec2 uResolution;
 
+const float waveCount = 16.0;
 
-float rand(float seed) {
-    return fract(sin(dot(vec2(seed, seed), vec2(12.9898, 78.233))) * 43758.5453);
+
+float hash(float n) {
+    return fract(sin(n) * 43758.5453123);
 }
 
 float waveLayer(vec3 p, float time, float i) {
-    float r = rand(i);
+    float r = hash(i);
     float dir = sin(r) * p.z + cos(r) * p.x;
-    return (sin((dir * pow(1.2, i) * 2.0) + time * 1.5 * pow(-1.0, i)) * pow(0.82, i)) / 36.0;
+    return (sin((dir * pow(1.2, i) * 2.0) + time * 1.5 * pow(-1.0, i)) * pow(0.7, i)) / 24.0;
 }
 
 
+vec2 waveLayerDeriv(vec3 p, float time, float i) {
+    float r = hash(i);
+    float sinr = sin(r);
+    float cosr = cos(r);
 
+    float A = pow(1.2, i) * 2.0;
+    float B = 1.5 * pow(-1.0, i);
+    float C = pow(0.7, i) / 24.0;
+
+    float d = sinr * p.z + cosr * p.x;
+    float theta = d * A + time * B;
+    float cosTheta = cos(theta);
+
+    // ∂y/∂x = cos(theta) * A * cos(r) * C
+    // ∂y/∂z = cos(theta) * A * sin(r) * C
+    return vec2(cosTheta * A * cosr * C, cosTheta * A * sinr * C);
+}
+
+vec3 getAnalyticNormal(vec3 p, float time) {
+    float y = 0.0;
+    float dydx = 0.0;
+    float dydz = 0.0;
+
+    for (float i = 0.0; i < waveCount; i++) {
+        y += waveLayer(p, time, i);
+        vec2 deriv = waveLayerDeriv(p, time, i);
+        dydx += deriv.x;
+        dydz += deriv.y;
+    }
+
+    // Tangent vectors: (1, dydx, 0) and (0, dydz, 1)
+    vec3 tangentX = vec3(1.0, dydx, 0.0);
+    vec3 tangentZ = vec3(0.0, dydz, 1.0);
+    return normalize(cross(tangentZ, tangentX));
+}
 
 
 float sphereSDF(vec3 p, vec3 size, float time) {
     float y = 0.0;
-    for (float i = 0.0; i < 16.0; i++) {
+    for (float i = 0.0; i < waveCount; i++) {
         y += waveLayer(p, time, i);
     }
     vec3 d = abs(p - vec3(0.0, y, 0.0)) - vec3(10.0, 0.0, 10.0);
@@ -100,6 +136,7 @@ vec3 getRay(vec2 uv) {
 
 void main() {
     vec2 uv = (gl_FragCoord.xy / uResolution) * 2.0 - 1.0;
+    vec3 lightDir = normalize(vec3(0.5, 1.0, 1.3));
     uv.x *= uResolution.x / uResolution.y;
 
     vec3 ro = vec3(0.0, 0.0, 3.0);
@@ -109,7 +146,20 @@ void main() {
     vec3 color = vec3(1.0);
 
     if (t < 10.0) {
-        color = vec3((t - 8.0) / 10.0, t / 12.0, 1.0);
+        vec3 hitPoint = ro + rd * t;
+        mat3 rot = rotationMatrix(uRotationX, uRotationY);
+
+        hitPoint = rot * hitPoint; // Rotate the hit point as in raymarch
+        vec3 normal = getAnalyticNormal(hitPoint, uTime);
+        float diff = max(dot(normal, lightDir), 0.0);
+
+        vec3 viewDir = normalize((rot * ro) - hitPoint);
+        vec3 halfDir = normalize(lightDir + viewDir);
+        float spec = pow(max(dot(normal, halfDir), 0.0), 128.0);
+
+        spec *= pow(diff, 0.5);
+
+        color = vec3(0.2, 0.5, 1.0) * diff + vec3(0.9, 1.0, 1.0 ) * spec;
     }
 
 
