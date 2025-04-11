@@ -8,9 +8,25 @@ uniform float uRotationY;
 uniform vec2 uResolution;
 
 
+float rand(float seed) {
+    return fract(sin(dot(vec2(seed, seed), vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float waveLayer(vec3 p, float time, float i) {
+    float r = rand(i);
+    float dir = sin(r) * p.z + cos(r) * p.x;
+    return (sin((dir * pow(1.2, i) * 2.0) + time * 1.5 * pow(-1.0, i)) * pow(0.82, i)) / 48.0;
+}
+
+
+
+
 
 float sphereSDF(vec3 p, vec3 size, float time) {
-    float y = (sin((p.x * -24.0) + time * 1.9) / 96.0) + (sin((p.x * 12.0) + time * 0.9) / 32.0) + (cos((p.x * 3.0) + time * 0.5) / 64.0) + (cos((p.z * 15.0) + time * 1.1) / 24.0)+ (sin((p.z * -25.0) + time * 1.3) / 128.0);
+    float y = 0.0;
+    for (float i = 0.0; i < 16.0; i++) {
+        y += waveLayer(p, time, i);
+    }
     vec3 d = abs(p - vec3(0.0, y, 0.0)) - vec3(10.0, 0.0, 10.0);
     return length(max(d, 0.0)) + min(max(d.x, max(d.y, d.z)), -0.1);
 }
@@ -90,8 +106,12 @@ void main() {
     vec3 rd = getRay(uv);
     float t = raymarch(ro, rd, uTime);
 
-    vec3 color = vec3(pow(t, 1.1) * 0.08, t * 0.12, 1.0);
-    
+    vec3 color = vec3(1.0);
+
+    if (t < 10.0) {
+        color = vec3((t - 8.0) / 10.0, (t - 1.0) / 10.0, 1.0);
+    }
+
 
     gl_FragColor = vec4(color, 1.0);
 }
